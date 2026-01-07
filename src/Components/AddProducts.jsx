@@ -1,49 +1,84 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 
-export default function AddProducts({ onClose }) {
+const schema = yup.object().shape({
+	name: yup.string().required('Product Name is required'),
+	price: yup.number().typeError('Price must be a number').positive('Price must be positive').required('Price is required'),
+	category: yup.string().required('Category is required'),
+	stock: yup.number().typeError('Stock must be a number').integer('Stock must be an integer').min(0, 'Stock cannot be negative').required('Stock quantity is required'),
+	description: yup.string().required('Description is required'),
+	image: yup.mixed().test('required', 'Product image is required', (value) => {
+		return value && value instanceof File;
+	})
+});
+
+export default function AddProducts() {
+	const navigate = useNavigate();
 	const [dragActive, setDragActive] = useState(false);
 	const [preview, setPreview] = useState(null);
+
+	const { register, handleSubmit, setValue, formState: { errors }, reset } = useForm({
+		resolver: yupResolver(schema)
+	});
+
+	const handleImageChange = (file) => {
+		setValue('image', file, { shouldValidate: true });
+		setPreview(URL.createObjectURL(file));
+	};
 
 	const handleDrag = (e) => {
 		e.preventDefault();
 		e.stopPropagation();
-		if (e.type === "dragenter" || e.type === "dragover") {
-			setDragActive(true);
-		} else if (e.type === "dragleave") {
-			setDragActive(false);
-		}
+		setDragActive(e.type === "dragenter" || e.type === "dragover");
 	};
 
 	const handleDrop = (e) => {
 		e.preventDefault();
 		e.stopPropagation();
 		setDragActive(false);
-		if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-			// Handle file upload here
-			const file = e.dataTransfer.files[0];
-			setPreview(URL.createObjectURL(file));
-		}
+		if (e.dataTransfer.files?.[0]) handleImageChange(e.dataTransfer.files[0]);
 	};
 
 	const handleChange = (e) => {
 		e.preventDefault();
-		if (e.target.files && e.target.files[0]) {
-			// Handle file upload here
-			const file = e.target.files[0];
-			setPreview(URL.createObjectURL(file));
+		if (e.target.files?.[0]) handleImageChange(e.target.files[0]);
+	};
+
+	const onSubmit = async (data) => {
+		const formData = new FormData();
+		Object.entries(data).forEach(([key, value]) => {
+			formData.append(key, value);
+		});
+
+		try {
+			const res = await fetch('http://localhost:5000/api/products', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await res.json();
+			if (res.ok) {
+				alert('Product created successfully!');
+				navigate('/');
+				reset();
+			} else {
+				alert(`Failed to create product: ${result.message || res.statusText}`);
+			}
+		} catch (error) {
+			console.error('Error:', error);
+			alert(`Error creating product: ${error.message}`);
 		}
 	};
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm transition-all duration-300">
-			{/* Backdrop click handler */}
-			<div className="absolute inset-0" onClick={onClose}></div>
+		<div className="min-h-screen bg-gray-50 dark:bg-black p-4 sm:p-6 flex items-center justify-center transition-all duration-300">
 			<div className="relative w-full max-w-2xl bg-white/80 dark:bg-zinc-900/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden transform transition-all">
 
-				{/* Decoration */}
 				<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
-				{/* Header */}
 				<div className="px-8 py-6 flex items-center justify-between border-b border-gray-100 dark:border-white/5">
 					<div>
 						<h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
@@ -54,7 +89,7 @@ export default function AddProducts({ onClose }) {
 						</p>
 					</div>
 					<button
-						onClick={onClose}
+						onClick={() => navigate('/')}
 						className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
 						<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -63,8 +98,7 @@ export default function AddProducts({ onClose }) {
 				</div>
 
 				<div className="p-8 max-h-[calc(100vh-200px)] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
-					<form className="space-y-6">
-						{/* Image Upload Area */}
+					<form id="add-product-form" className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
 						<div
 							className={`relative group h-48 rounded-2xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden
 								${dragActive
@@ -106,8 +140,8 @@ export default function AddProducts({ onClose }) {
 								</div>
 							)}
 						</div>
+						{errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
 
-						{/* Form Grid */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 							<div className="space-y-1.5">
 								<label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 ml-1">
@@ -115,9 +149,12 @@ export default function AddProducts({ onClose }) {
 								</label>
 								<input
 									type="text"
+									{...register('name')}
 									placeholder="e.g. MacBook Pro M3"
-									className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all dark:text-white placeholder:text-gray-400"
+									className={`w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border outline-none transition-all dark:text-white placeholder:text-gray-400
+                                        ${errors.name ? 'border-red-500' : 'border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'}`}
 								/>
+								{errors.name && <p className="text-red-500 text-xs">{errors.name.message}</p>}
 							</div>
 
 							<div className="space-y-1.5">
@@ -128,23 +165,32 @@ export default function AddProducts({ onClose }) {
 									<span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
 									<input
 										type="number"
+										step="0.01"
+										{...register('price')}
 										placeholder="0.00"
-										className="w-full pl-8 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all dark:text-white placeholder:text-gray-400"
+										className={`w-full pl-8 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border outline-none transition-all dark:text-white placeholder:text-gray-400
+                                            ${errors.price ? 'border-red-500' : 'border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'}`}
 									/>
 								</div>
+								{errors.price && <p className="text-red-500 text-xs">{errors.price.message}</p>}
 							</div>
 
 							<div className="space-y-1.5">
 								<label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 ml-1">
 									Category
 								</label>
-								<select className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all dark:text-white text-gray-700 cursor-pointer appearance-none">
-									<option value="" disabled selected>Select Category</option>
-									<option value="electronics">Electronics</option>
-									<option value="clothing">Clothing</option>
-									<option value="home">Home & Garden</option>
-									<option value="toys">Toys</option>
+								<select
+									{...register('category')}
+									className={`w-full px-4 py-3 rounded-xl bg-black border outline-none transition-all dark:text-white text-gray-200 cursor-pointer appearance-none
+                                        ${errors.category ? 'border-red-500' : 'border-gray-700 focus:border-indigo-700 focus:ring-2 focus:ring-indigo-700/20'}`}
+								>
+									<option value="" disabled>Select Category</option>
+									<option value="Laptops">Laptops</option>
+									<option value="Smartphones">Smartphones</option>
+									<option value="Audio">Audio</option>
+									<option value="Gaming">Gaming</option>
 								</select>
+								{errors.category && <p className="text-red-500 text-xs">{errors.category.message}</p>}
 							</div>
 
 							<div className="space-y-1.5">
@@ -153,9 +199,12 @@ export default function AddProducts({ onClose }) {
 								</label>
 								<input
 									type="number"
+									{...register('stock')}
 									placeholder="0"
-									className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all dark:text-white placeholder:text-gray-400"
+									className={`w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border outline-none transition-all dark:text-white placeholder:text-gray-400
+                                        ${errors.stock ? 'border-red-500' : 'border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'}`}
 								/>
+								{errors.stock && <p className="text-red-500 text-xs">{errors.stock.message}</p>}
 							</div>
 						</div>
 
@@ -165,22 +214,24 @@ export default function AddProducts({ onClose }) {
 							</label>
 							<textarea
 								rows="4"
+								{...register('description')}
 								placeholder="Enter product description..."
-								className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all dark:text-white placeholder:text-gray-400 resize-none"
+								className={`w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border outline-none transition-all dark:text-white placeholder:text-gray-400 resize-none
+                                    ${errors.description ? 'border-red-500' : 'border-gray-200 dark:border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'}`}
 							/>
+							{errors.description && <p className="text-red-500 text-xs">{errors.description.message}</p>}
 						</div>
 					</form>
 				</div>
 
-				{/* Footer */}
 				<div className="px-8 py-5 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5 flex items-center justify-end gap-3">
 					<button
-						onClick={onClose}
+						onClick={() => navigate('/')}
 						type="button"
 						className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
 						Cancel
 					</button>
-					<button className="px-6 py-2.5 rounded-xl font-semibold text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/20">
+					<button type="submit" form="add-product-form" className="px-6 py-2.5 rounded-xl font-semibold text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/20">
 						Create Product
 					</button>
 				</div>

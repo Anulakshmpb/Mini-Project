@@ -3,9 +3,8 @@ const ProductCard = ({ product }) => {
 		<div className="group relative w-full max-w-[280px] mx-auto [perspective:1000px]">
 			<div className="relative h-[400px] w-full rounded-3xl transition-all duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
 
-				{/* Front Face */}
+				{/* Front */}
 				<div className="absolute inset-0 h-full w-full rounded-3xl bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-white/20 shadow-xl overflow-hidden [backface-visibility:hidden]">
-					{/* Image Container with Gradient Overlay */}
 					<div className="relative h-[65%] w-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-zinc-800 dark:to-zinc-900 p-6 flex items-center justify-center overflow-hidden">
 						<div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 						<img
@@ -14,7 +13,6 @@ const ProductCard = ({ product }) => {
 							className="relative w-full h-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-110"
 						/>
 
-						{/* Floating Badge */}
 						{product.stock < 5 && (
 							<span className="absolute top-4 left-4 px-3 py-1 bg-red-500/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
 								Low Stock
@@ -22,7 +20,6 @@ const ProductCard = ({ product }) => {
 						)}
 					</div>
 
-					{/* Content Front */}
 					<div className="h-[35%] p-5 flex flex-col justify-between bg-white/50 dark:bg-zinc-900/50">
 						<div>
 							<h3 className="text-lg font-bold text-gray-900 dark:text-white truncate tracking-tight">
@@ -47,7 +44,7 @@ const ProductCard = ({ product }) => {
 					</div>
 				</div>
 
-				{/* Back Face */}
+				{/* Back */}
 				<div className="absolute inset-0 h-full w-full rounded-3xl bg-gray-900 dark:bg-black text-white p-6 [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col justify-center items-center text-center shadow-2xl border border-zinc-800">
 					<h4 className="text-xl font-bold mb-4 bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
 						Overview
