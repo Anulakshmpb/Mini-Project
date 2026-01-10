@@ -63,7 +63,6 @@ export default function Products() {
 								<option value="low">Low to High</option>
 								<option value="high">High to Low</option>
 							</optgroup>
-							{/* <option value="rating">Rating</option> */}
 
 						</select>
 						{
