@@ -10,7 +10,7 @@ export default function Products() {
 	const [select, setSelect] = useState("");
 	const [sortOrder, setSortOrder] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 4;
+	const itemsPerPage = 8;
 
 	const { products } = React.useContext(ProductContext);
 
